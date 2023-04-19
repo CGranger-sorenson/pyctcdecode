@@ -411,7 +411,7 @@ class BeamSearchDecoderCTC:
                         )
                 lm_score += cached_partial_token_scores[word_part]
                 
-            if beam.update_confidence:
+            if beam.update_confidence and len(beam.text_frames) > 0:
                 conf_div = beam.text_frames[-1][1] - beam.text_frames[-1][0]
                 # Update word level confidence score by
                 #      1. Dividing by number of frames
