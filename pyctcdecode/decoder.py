@@ -416,7 +416,7 @@ class BeamSearchDecoderCTC:
                 # Update word level confidence score by
                 #      1. Dividing by number of frames
                 #      2. Adding LM score
-                beam.text_frames[-1] = (beam.text_frames[-1][0],beam.text_frames[-1][1],beam.text_frames[-1][-1]/conf_div + lm_score)
+                beam.text_frames[-1] = (beam.text_frames[-1][0],beam.text_frames[-1][1],beam.text_frames[-1][-1]/conf_div)
 
             new_beams.append(
                 LMBeam(
