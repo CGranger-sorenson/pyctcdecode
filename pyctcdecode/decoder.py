@@ -531,7 +531,7 @@ class BeamSearchDecoderCTC:
                     # general update of continuing token without space
                     else:
                         new_part_frames = (
-                            (frame_idx, frame_idx + 1)
+                            (frame_idx, frame_idx + 1,p_char)
                             if beam.partial_frames[0] < 0
                             else (beam.partial_frames[0], frame_idx + 1,beam.partial_frames[2] + p_char)
                         )
