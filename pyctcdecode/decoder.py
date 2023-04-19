@@ -377,6 +377,7 @@ class BeamSearchDecoderCTC:
                         partial_frames=beam.partial_frames,
                         logit_score=beam.logit_score,
                         lm_score=lm_hw_score,
+                        update_confidence=False
                     )
                 )
             return new_beams
@@ -426,6 +427,7 @@ class BeamSearchDecoderCTC:
                     partial_frames=beam.partial_frames,
                     logit_score=beam.logit_score,
                     lm_score=beam.logit_score + lm_score,
+                    update_confidence=False
                 )
             )
 
