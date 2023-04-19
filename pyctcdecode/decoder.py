@@ -62,7 +62,7 @@ except ImportError:
 
 # type hints
 # store frame information for each word, where frame is the logit index of (start_frame, end_frame)
-Frames = Tuple[int, int]
+Frames = Tuple[int, int, int]
 WordFrames = Tuple[str, Frames]
 
 
@@ -77,6 +77,7 @@ class Beam:
     text_frames: List[Frames]
     partial_frames: Frames
     logit_score: float
+    update_confidence: bool
 
     @classmethod
     def from_lm_beam(cls, lm_beam: LMBeam) -> "Beam":
@@ -126,8 +127,8 @@ LMScoreCacheValue = Tuple[float, float, AbstractLMState]
 LMScoreCache = Dict[LMScoreCacheKey, LMScoreCacheValue]
 
 # constants
-NULL_FRAMES: Frames = (-1, -1)  # placeholder that gets replaced with positive integer frame indices
-EMPTY_START_BEAM = Beam("", "", "", None, [], NULL_FRAMES, 0.0)
+NULL_FRAMES: Frames = (-1, -1,-1)  # placeholder that gets replaced with positive integer frame indices
+EMPTY_START_BEAM = Beam("", "", "", None, [], NULL_FRAMES, 0.0, False)
 
 
 # Generic float type
@@ -407,6 +408,13 @@ class BeamSearchDecoderCTC:
                             word_part
                         )
                 lm_score += cached_partial_token_scores[word_part]
+                
+            if beam.update_confidence:
+                conf_div = beam.text_frames[-1][1] - beam.text_frames[-1][0]
+                # Update word level confidence score by
+                #      1. Dividing by number of frames
+                #      2. Adding LM score
+                beam.text_frames[-1] = (beam.text_frames[-1][0],beam.text_frames[-1][1],beam.text_frames[-1][-1]/conf_div + lm_score)
 
             new_beams.append(
                 LMBeam(
@@ -457,7 +465,7 @@ class BeamSearchDecoderCTC:
                         new_part_frames = (
                             beam.partial_frames
                             if char == ""
-                            else (beam.partial_frames[0], new_end_frame)
+                            else (beam.partial_frames[0], new_end_frame,beam.partial_frames[-1] + p_char)
                         )
                         new_beams.append(
                             Beam(
@@ -468,6 +476,7 @@ class BeamSearchDecoderCTC:
                                 text_frames=beam.text_frames,
                                 partial_frames=new_part_frames,
                                 logit_score=beam.logit_score + p_char,
+                                update_confidence=False
                             )
                         )
                     # if bpe and leading space char
@@ -492,8 +501,9 @@ class BeamSearchDecoderCTC:
                                 partial_word=clean_char,
                                 last_char=char,
                                 text_frames=new_frame_list,
-                                partial_frames=(frame_idx, frame_idx + 1),
+                                partial_frames=(frame_idx, frame_idx + 1,p_char),
                                 logit_score=beam.logit_score + p_char,
+                                update_confidence=True
                             )
                         )
                     # if not bpe and space char
@@ -510,8 +520,9 @@ class BeamSearchDecoderCTC:
                                 partial_word="",
                                 last_char=char,
                                 text_frames=new_frame_list,
-                                partial_frames=NULL_FRAMES,
+                                partial_frames=(-1,-1,p_char),
                                 logit_score=beam.logit_score + p_char,
+                                update_confidence=True
                             )
                         )
                     # general update of continuing token without space
@@ -519,7 +530,7 @@ class BeamSearchDecoderCTC:
                         new_part_frames = (
                             (frame_idx, frame_idx + 1)
                             if beam.partial_frames[0] < 0
-                            else (beam.partial_frames[0], frame_idx + 1)
+                            else (beam.partial_frames[0], frame_idx + 1,beam.partial_frames[-1] + p_char)
                         )
                         new_beams.append(
                             Beam(
@@ -530,6 +541,7 @@ class BeamSearchDecoderCTC:
                                 beam.text_frames,
                                 new_part_frames,
                                 beam.logit_score + p_char,
+                                update_confidence=False
                             )
                         )
 
@@ -575,6 +587,7 @@ class BeamSearchDecoderCTC:
                     if beam.partial_word == ""
                     else beam.text_frames + [beam.partial_frames]
                 )
+                update_conf = beam.partial_word != ""
                 new_beams.append(
                     Beam(
                         text=beam.text,
@@ -582,8 +595,9 @@ class BeamSearchDecoderCTC:
                         partial_word="",
                         last_char=None,
                         text_frames=new_token_times,
-                        partial_frames=(-1, -1),
+                        partial_frames=(-1, -1,0.0),
                         logit_score=beam.logit_score,
+                        update_confidence=update_conf
                     ),
                 )
             new_beams = _merge_beams(new_beams)
