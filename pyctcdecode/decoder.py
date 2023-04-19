@@ -90,6 +90,7 @@ class Beam:
             text_frames=lm_beam.text_frames,
             partial_frames=lm_beam.partial_frames,
             logit_score=lm_beam.logit_score,
+            update_confidence=lm_beam.update_confidence
         )
 
 
