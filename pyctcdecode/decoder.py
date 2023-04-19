@@ -128,7 +128,7 @@ LMScoreCacheValue = Tuple[float, float, AbstractLMState]
 LMScoreCache = Dict[LMScoreCacheKey, LMScoreCacheValue]
 
 # constants
-NULL_FRAMES: Frames = (-1, -1,-1)  # placeholder that gets replaced with positive integer frame indices
+NULL_FRAMES: Frames = (-1, -1,0.0)  # placeholder that gets replaced with positive integer frame indices
 EMPTY_START_BEAM = Beam("", "", "", None, [], NULL_FRAMES, 0.0, False)
 
 
@@ -416,7 +416,7 @@ class BeamSearchDecoderCTC:
                 # Update word level confidence score by
                 #      1. Dividing by number of frames
                 #      2. Adding LM score
-                beam.text_frames[-1] = (beam.text_frames[-1][0],beam.text_frames[-1][1],beam.text_frames[-1][-1]/conf_div)
+                beam.text_frames[-1] = (beam.text_frames[-1][0],beam.text_frames[-1][1],beam.text_frames[-1][2]/conf_div)
 
             new_beams.append(
                 LMBeam(
@@ -468,7 +468,7 @@ class BeamSearchDecoderCTC:
                         new_part_frames = (
                             beam.partial_frames
                             if char == ""
-                            else (beam.partial_frames[0], new_end_frame,beam.partial_frames[-1] + p_char)
+                            else (beam.partial_frames[0], new_end_frame,beam.partial_frames[2] + p_char)
                         )
                         new_beams.append(
                             Beam(
@@ -533,7 +533,7 @@ class BeamSearchDecoderCTC:
                         new_part_frames = (
                             (frame_idx, frame_idx + 1)
                             if beam.partial_frames[0] < 0
-                            else (beam.partial_frames[0], frame_idx + 1,beam.partial_frames[-1] + p_char)
+                            else (beam.partial_frames[0], frame_idx + 1,beam.partial_frames[2] + p_char)
                         )
                         new_beams.append(
                             Beam(
